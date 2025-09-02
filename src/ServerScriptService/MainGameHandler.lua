@@ -70,6 +70,9 @@ local ProgressionManager = loadModule(ServerStorage.Modules.ProgressionManager, 
 -- Load Shop Manager
 local ShopManager = loadModule(ServerStorage.Modules.ShopManager, "ShopManager")
 
+-- Load Notification Manager (Server-side wrapper)
+local NotificationManager = loadModule(ServerStorage.Modules.NotificationManager, "NotificationManager")
+
 -- ==========================================
 -- MODULE INITIALIZATION
 -- ==========================================
@@ -83,7 +86,8 @@ local initOrder = {
     {module = PlotManager, name = "PlotManager"},
     {module = PlantManager, name = "PlantManager"},
     {module = ProgressionManager, name = "ProgressionManager"},
-    {module = ShopManager, name = "ShopManager"}
+    {module = ShopManager, name = "ShopManager"},
+    {module = NotificationManager, name = "NotificationManager"}
 }
 
 local initializedModules = {}
@@ -103,6 +107,9 @@ for _, moduleInfo in ipairs(initOrder) do
         if success and result then
             table.insert(initializedModules, moduleInfo.name)
             print("✅ MainGameHandler:", moduleInfo.name, "initialized successfully")
+            
+            -- Register module globally for cross-module access
+            _G[moduleInfo.name] = moduleInfo.module
         else
             warn("❌ MainGameHandler: Failed to initialize", moduleInfo.name)
         end
@@ -180,18 +187,24 @@ if remoteEvents then
             end
             
             -- Plant the seed
-            local plotPosition = PlotManager:GetPlotPosition(plotId)
-            if plotPosition then
-                local planted = PlantManager:CreatePlant(plotId, plantType, plotPosition)
-                if planted then
-                    print("🌱 PlantSeed:", player.Name, "planted", plantType, "at plot", plotId)
-                else
-                    -- Refund if planting failed
-                    if EconomyManager then
-                        local plantConfig = ConfigModule.Plants[plantType]
-                        EconomyManager:AddCoins(player, plantConfig.buyPrice, "Planting Failed - Refund")
+            if PlotManager and PlotManager.GetPlotPosition then
+                local plotPosition = PlotManager:GetPlotPosition(plotId)
+                if plotPosition then
+                    local planted = PlantManager:CreatePlant(plotId, plantType, plotPosition)
+                    if planted then
+                        print("🌱 PlantSeed:", player.Name, "planted", plantType, "at plot", plotId)
+                    else
+                        -- Refund if planting failed
+                        if EconomyManager then
+                            local plantConfig = ConfigModule.Plants[plantType]
+                            EconomyManager:AddCoins(player, plantConfig.buyPrice, "Planting Failed - Refund")
+                        end
                     end
+                else
+                    warn("⚠️ MainGameHandler: Invalid plot position for plot", plotId)
                 end
+            else
+                warn("⚠️ MainGameHandler: PlotManager not available for planting")
             end
         end)
     end
