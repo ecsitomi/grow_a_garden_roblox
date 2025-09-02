@@ -309,6 +309,62 @@ if remoteEvents then
         end
     end
     
+    -- Handle PurchaseItem requests
+    local purchaseItemFunction = remoteEvents:FindFirstChild("PurchaseItem")
+    if purchaseItemFunction then
+        purchaseItemFunction.OnServerInvoke = function(player, itemType, itemName, quantity)
+            print("🛒 MainGameHandler: Purchase request from", player.Name, ":", itemType, itemName, "x" .. (quantity or 1))
+            
+            -- Validate inputs
+            if not itemType or not itemName then
+                return {success = false, message = "Invalid purchase parameters"}
+            end
+            
+            quantity = quantity or 1
+            
+            -- Handle seed purchases
+            if itemType == "seed" then
+                -- Check if plant exists in config
+                local ConfigModule = require(ReplicatedStorage.Modules.ConfigModule)
+                local plantConfig = ConfigModule.Plants[itemName]
+                if not plantConfig then
+                    return {success = false, message = "Plant not found: " .. itemName}
+                end
+                
+                -- Check if plant is unlocked
+                if ProgressionManager then
+                    if not ProgressionManager:IsPlantUnlocked(player, itemName) then
+                        return {success = false, message = "Plant locked: Level " .. (plantConfig.unlockLevel or 1) .. " required"}
+                    end
+                end
+                
+                -- Check if player can afford it
+                local totalCost = plantConfig.buyPrice * quantity
+                local playerCoins = EconomyManager and EconomyManager:GetPlayerCoins(player) or 0
+                if playerCoins < totalCost then
+                    return {success = false, message = "Not enough coins. Need " .. totalCost .. ", have " .. playerCoins}
+                end
+                
+                -- Process the purchase
+                if EconomyManager then
+                    local success = EconomyManager:SpendCoins(player, totalCost)
+                    if success then
+                        -- Add seeds to inventory (if inventory system exists)
+                        -- For now, just return success
+                        print("✅ MainGameHandler: Purchase successful -", player.Name, "bought", quantity .. "x", itemName, "for", totalCost, "coins")
+                        return {success = true, message = "Purchased " .. quantity .. "x " .. itemName .. " for " .. totalCost .. " coins"}
+                    else
+                        return {success = false, message = "Failed to process payment"}
+                    end
+                else
+                    return {success = false, message = "Economy system not available"}
+                end
+            else
+                return {success = false, message = "Unknown item type: " .. itemType}
+            end
+        end
+    end
+    
 else
     warn("⚠️ MainGameHandler: RemoteEvents folder not found")
 end

@@ -632,14 +632,35 @@ function ShopUIHandler:CloseShop()
 end
 
 function ShopUIHandler:PurchaseSeed(plantName)
-    -- Send purchase request to server
+    -- Send purchase request to server using PurchaseItem RemoteFunction
     local remoteEvents = ReplicatedStorage:FindFirstChild("RemoteEvents")
     if remoteEvents then
-        local purchaseSeedEvent = remoteEvents:FindFirstChild("PurchaseSeed")
-        if purchaseSeedEvent then
-            purchaseSeedEvent:FireServer(plantName, 1) -- Purchase 1 seed
+        local purchaseItemFunction = remoteEvents:FindFirstChild("PurchaseItem")
+        if purchaseItemFunction then
             print("🌱 ShopUIHandler: Requesting purchase of", plantName)
+            
+            -- Call the server function and handle the response
+            local success, result = pcall(function()
+                return purchaseItemFunction:InvokeServer("seed", plantName, 1) -- Purchase 1 seed
+            end)
+            
+            if success and result then
+                if result.success then
+                    self:ShowNotification("✅ " .. result.message, "success")
+                    -- Update player data after successful purchase
+                    self:UpdatePlayerData()
+                else
+                    self:ShowNotification("❌ " .. result.message, "error")
+                end
+            else
+                self:ShowNotification("❌ Failed to purchase seed", "error")
+                warn("❌ ShopUIHandler: Purchase request failed:", result)
+            end
+        else
+            warn("❌ ShopUIHandler: PurchaseItem RemoteFunction not found")
         end
+    else
+        warn("❌ ShopUIHandler: RemoteEvents folder not found")
     end
 end
 
@@ -671,14 +692,6 @@ function ShopUIHandler:SetupEventConnections()
     if updatePlayerDataEvent then
         updatePlayerDataEvent.OnClientEvent:Connect(function(playerData)
             self:OnPlayerDataUpdated(playerData)
-        end)
-    end
-    
-    -- Listen for purchase confirmations
-    local purchaseConfirmEvent = remoteEvents:FindFirstChild("PurchaseConfirmed")
-    if purchaseConfirmEvent then
-        purchaseConfirmEvent.OnClientEvent:Connect(function(itemType, itemName, success, message)
-            self:OnPurchaseConfirmed(itemType, itemName, success, message)
         end)
     end
     
@@ -809,16 +822,6 @@ end
 -- ==========================================
 -- NOTIFICATIONS
 -- ==========================================
-
-function ShopUIHandler:OnPurchaseConfirmed(itemType, itemName, success, message)
-    if success then
-        self:ShowNotification("✅ " .. message, "success")
-        -- Update player data after successful purchase
-        self:UpdatePlayerData()
-    else
-        self:ShowNotification("❌ " .. message, "error")
-    end
-end
 
 function ShopUIHandler:ShowNotification(message, messageType)
     -- Create floating notification
