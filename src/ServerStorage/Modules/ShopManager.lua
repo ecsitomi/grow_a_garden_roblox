@@ -153,9 +153,14 @@ function ShopManager:CreateShopNPCFromPart()
     local config = ConfigModule.Shop.NPC
     local position = self.SpawnPosition + config.offsetFromSpawn
     
+    -- Create shop NPC Model (for ProximityPrompt compatibility)
+    local npcModel = Instance.new("Model")
+    npcModel.Name = "ShopNPC"
+    npcModel.Parent = Workspace
+    
     -- Create shop NPC Part (INTERACTION POINT!)
     local npc = Instance.new("Part")
-    npc.Name = "ShopNPC"
+    npc.Name = "ShopNPCPart"
     npc.Shape = Enum.PartType.Cylinder
     npc.Size = config.size
     npc.Color = config.color
@@ -163,7 +168,10 @@ function ShopManager:CreateShopNPCFromPart()
     npc.Position = position + Vector3.new(0, config.size.Y/2, 0) -- Ground level + height/2
     npc.Anchored = true
     npc.CanCollide = false -- Players can walk through the NPC
-    npc.Parent = Workspace
+    npc.Parent = npcModel
+    
+    -- Set primary part for the model
+    npcModel.PrimaryPart = npc
     
     -- Rotate cylinder to look like a person (standing upright)
     npc.Rotation = Vector3.new(0, 0, 90)
@@ -189,7 +197,7 @@ function ShopManager:CreateShopNPCFromPart()
     nameLabel.Parent = nameGui
     
     print("👤 ShopManager: Created shop NPC placeholder at", position)
-    return npc
+    return npcModel -- Return the model, not the part
 end
 
 function ShopManager:CreateShopNPCFromModel()
@@ -209,11 +217,13 @@ function ShopManager:SetupShopInteraction()
         return
     end
     
+    print("🔧 ShopManager: Setting up ProximityPrompt on NPC:", self.ShopNPC.Name)
+    
     -- Create ProximityPrompt on the NPC (not the building!)
     local prompt = Instance.new("ProximityPrompt")
     prompt.Name = "ShopPrompt"
-    prompt.ActionText = ConfigModule.Shop.NPC.promptText
-    prompt.ObjectText = ConfigModule.Shop.NPC.name
+    prompt.ActionText = ConfigModule.Shop.NPC.promptText or "Open Shop"
+    prompt.ObjectText = ConfigModule.Shop.NPC.name or "Shop"
     prompt.HoldDuration = 0 -- Instant activation
     prompt.MaxActivationDistance = 15
     prompt.RequiresLineOfSight = false
@@ -222,8 +232,11 @@ function ShopManager:SetupShopInteraction()
     
     self.ShopPrompt = prompt
     
+    print("✅ ShopManager: ProximityPrompt created with:", prompt.ActionText, "|", prompt.ObjectText)
+    
     -- Handle interaction events
     prompt.Triggered:Connect(function(player)
+        print("🎯 ShopManager: ProximityPrompt triggered by", player.Name)
         self:OnShopInteraction(player)
     end)
     
@@ -255,8 +268,12 @@ function ShopManager:ValidatePlayerDistance(player)
         return false
     end
     
+    if not self.ShopNPC or not self.ShopNPC.PrimaryPart then
+        return false
+    end
+    
     local playerPosition = player.Character.PrimaryPart.Position
-    local npcPosition = self.ShopNPC.Position
+    local npcPosition = self.ShopNPC.PrimaryPart.Position
     local distance = (playerPosition - npcPosition).Magnitude
     
     -- Check if player is within reasonable interaction distance
@@ -273,7 +290,7 @@ function ShopManager:GetShopBuildingPosition()
 end
 
 function ShopManager:GetShopNPCPosition()
-    return self.ShopNPC and self.ShopNPC.Position or nil
+    return self.ShopNPC and self.ShopNPC.PrimaryPart and self.ShopNPC.PrimaryPart.Position or nil
 end
 
 function ShopManager:GetDistanceFromSpawn()
@@ -287,12 +304,12 @@ function ShopManager:IsPlayerNearShop(player, maxDistance)
         return false
     end
     
-    if not self.ShopNPC then
+    if not self.ShopNPC or not self.ShopNPC.PrimaryPart then
         return false
     end
     
     local playerPosition = player.Character.PrimaryPart.Position
-    local shopPosition = self.ShopNPC.Position
+    local shopPosition = self.ShopNPC.PrimaryPart.Position
     local distance = (playerPosition - shopPosition).Magnitude
     
     maxDistance = maxDistance or 25 -- Default 25 stud radius
@@ -317,9 +334,9 @@ function ShopManager:UpdateShopSign(newText)
 end
 
 function ShopManager:UpdateNPCName(newName)
-    if not self.ShopNPC then return end
+    if not self.ShopNPC or not self.ShopNPC.PrimaryPart then return end
     
-    local nameGui = self.ShopNPC:FindFirstChild("NPCNametag")
+    local nameGui = self.ShopNPC.PrimaryPart:FindFirstChild("NPCNametag")
     if nameGui then
         local nameLabel = nameGui:FindFirstChild("NameLabel")
         if nameLabel then
@@ -339,23 +356,24 @@ end
 -- ==========================================
 
 function ShopManager:AddShopEffects()
-    if not self.ShopNPC then return end
+    if not self.ShopNPC or not self.ShopNPC.PrimaryPart then return end
     
     -- Add glowing effect to NPC (already Neon material)
-    local originalTransparency = self.ShopNPC.Transparency
+    local npcPart = self.ShopNPC.PrimaryPart
+    local originalTransparency = npcPart.Transparency
     
     -- Gentle pulsing effect
     spawn(function()
-        while self.ShopNPC and self.ShopNPC.Parent do
+        while self.ShopNPC and self.ShopNPC.Parent and npcPart and npcPart.Parent do
             for i = 1, 10 do
-                if self.ShopNPC and self.ShopNPC.Parent then
-                    self.ShopNPC.Transparency = originalTransparency + (i / 50) -- Subtle fade
+                if npcPart and npcPart.Parent then
+                    npcPart.Transparency = originalTransparency + (i / 50) -- Subtle fade
                     wait(0.1)
                 end
             end
             for i = 10, 1, -1 do
-                if self.ShopNPC and self.ShopNPC.Parent then
-                    self.ShopNPC.Transparency = originalTransparency + (i / 50) -- Subtle fade
+                if npcPart and npcPart.Parent then
+                    npcPart.Transparency = originalTransparency + (i / 50) -- Subtle fade
                     wait(0.1)
                 end
             end

@@ -39,7 +39,7 @@ ShopUIHandler.VIPFrame = nil
 ShopUIHandler.CurrentShopTab = "seeds"
 
 -- UI State
-ShopUIHandler.IsShopOpen = false
+ShopUIHandler.IsShopOpen = false  -- Initialize as false
 ShopUIHandler.PlayerCoins = 0
 ShopUIHandler.PlayerLevel = 1
 ShopUIHandler.UnlockedPlants = {}
@@ -51,6 +51,7 @@ ShopUIHandler.IsVIP = false
 
 function ShopUIHandler:Initialize()
     print("🛒 ShopUIHandler: Initializing shop UI system...")
+    print("🔍 ShopUIHandler: Starting initialization - IsShopOpen:", self.IsShopOpen)
     
     -- Wait for player GUI
     self.PlayerGui = self.Player:WaitForChild("PlayerGui")
@@ -64,8 +65,19 @@ function ShopUIHandler:Initialize()
     -- Set up NPC interaction
     self:SetupNPCInteraction()
     
-    -- Update initial data
-    self:UpdatePlayerData()
+    -- Update initial data (with error handling)
+    local success, result = pcall(function()
+        self:UpdatePlayerData()
+    end)
+    
+    if not success then
+        warn("⚠️ ShopUIHandler: Failed to update initial player data:", result)
+        -- Set default values
+        self.PlayerCoins = 100
+        self.PlayerLevel = 1
+        self.UnlockedPlants = {"Carrot"}
+        self.IsVIP = false
+    end
     
     print("✅ ShopUIHandler: Shop UI initialized successfully")
 end
@@ -85,10 +97,12 @@ function ShopUIHandler:CreateShopUI()
     self.SeedScrollingFrame = self:CreateSeedShopContent(self.ShopFrame)
     self.VIPFrame = self:CreateVIPShopContent(self.ShopFrame)
     
-    -- Initially hide shop
+    -- Initially hide shop and set state correctly
     self.ShopFrame.Visible = false
+    self.IsShopOpen = false  -- Ensure this is properly initialized
     
     print("🎨 ShopUIHandler: Shop UI created successfully")
+    print("🔍 ShopUIHandler: Initial state - Visible:", self.ShopFrame.Visible, "IsShopOpen:", self.IsShopOpen)
 end
 
 function ShopUIHandler:CreateMainShopFrame(parent)
@@ -564,8 +578,21 @@ function ShopUIHandler:SwitchToTab(tabName)
 end
 
 function ShopUIHandler:OpenShop()
-    if self.IsShopOpen then return end
+    print("🛒 ShopUIHandler: OpenShop function called")
+    print("🔍 ShopUIHandler: Current state - Visible:", self.ShopFrame.Visible, "IsShopOpen:", self.IsShopOpen)
     
+    if self.IsShopOpen then 
+        print("⚠️ ShopUIHandler: Shop already open, ignoring request")
+        -- Force reset the shop state if UI is not actually visible
+        if not self.ShopFrame.Visible then
+            print("🔧 ShopUIHandler: Detected state mismatch - resetting shop state")
+            self.IsShopOpen = false
+        else
+            return 
+        end
+    end
+    
+    print("📱 ShopUIHandler: Opening shop UI...")
     self.IsShopOpen = true
     self.ShopFrame.Visible = true
     
@@ -667,6 +694,7 @@ function ShopUIHandler:SetupEventConnections()
     local openShopEvent = remoteEvents:FindFirstChild("OpenShop")
     if openShopEvent then
         openShopEvent.OnClientEvent:Connect(function()
+            print("📡 ShopUIHandler: Received OpenShop remote event")
             self:OpenShop()
         end)
         print("🔗 ShopUIHandler: Connected to OpenShop remote event")

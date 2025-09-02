@@ -291,6 +291,24 @@ if remoteEvents then
         end)
     end
     
+    -- Handle GetPlayerData requests
+    local getPlayerDataFunction = remoteEvents:FindFirstChild("GetPlayerData")
+    if getPlayerDataFunction then
+        getPlayerDataFunction.OnServerInvoke = function(player)
+            local playerData = {
+                coins = EconomyManager and EconomyManager:GetPlayerCoins(player) or 100,
+                xp = ProgressionManager and ProgressionManager:GetPlayerXP(player) or 0,
+                level = ProgressionManager and ProgressionManager:GetPlayerLevel(player) or 1,
+                isVIP = VIPManager and VIPManager:IsPlayerVIP(player) or false,
+                plots = PlotManager and PlotManager:GetPlayerPlots(player) or {},
+                unlockedPlants = ProgressionManager and ProgressionManager:GetUnlockedPlants(player) or {"Carrot"}
+            }
+            
+            print("📊 MainGameHandler: Sent player data to", player.Name)
+            return playerData
+        end
+    end
+    
 else
     warn("⚠️ MainGameHandler: RemoteEvents folder not found")
 end
