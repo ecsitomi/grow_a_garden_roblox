@@ -446,9 +446,11 @@ end
 
 -- Validate configuration on load
 function ConfigModule:Validate()
-    assert(self.VIP.GAMEPASS_ID, "VIP GamePass ID must be set")
-    assert(#self.Plots.GRID_OFFSET > 0, "Plot grid configuration required")
+    assert(self.VIP.GAMEPASS_ID >= 0, "VIP GamePass ID must be set (0 for testing)")
+    assert(self.Plots.GRID_OFFSET and self.Plots.GRID_OFFSET.START_X, "Plot grid configuration required")
     assert(self.Plants.Tomato, "At least one plant (Tomato) must be configured")
+    assert(self.Plots.TOTAL_PLOTS > 0, "Plot count must be greater than 0")
+    assert(self.Plots.PLOT_SIZE > 0, "Plot size must be greater than 0")
     print("✅ ConfigModule: All configurations validated successfully")
 end
 

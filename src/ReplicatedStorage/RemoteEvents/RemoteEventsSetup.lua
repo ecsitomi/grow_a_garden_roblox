@@ -1,20 +1,23 @@
 --[[
-    Remote Events Setup
-    Client-Server Communication Events
+    RemoteEventsSetup.lua
+    Client-Server Communication Events Module
     
-    This script creates all the necessary RemoteEvents and RemoteFunctions
+    This ModuleScript creates all the necessary RemoteEvents and RemoteFunctions
     for the garden game communication system.
 --]]
 
--- Create RemoteEvents folder if it doesn't exist
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RemoteEventsSetup = {}
 
-local remoteEventsFolder = ReplicatedStorage:FindFirstChild("RemoteEvents")
-if not remoteEventsFolder then
-    remoteEventsFolder = Instance.new("Folder")
-    remoteEventsFolder.Name = "RemoteEvents"
-    remoteEventsFolder.Parent = ReplicatedStorage
-end
+function RemoteEventsSetup:Initialize()
+    -- Create RemoteEvents folder if it doesn't exist
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+    local remoteEventsFolder = ReplicatedStorage:FindFirstChild("RemoteEvents")
+    if not remoteEventsFolder then
+        remoteEventsFolder = Instance.new("Folder")
+        remoteEventsFolder.Name = "RemoteEvents"
+        remoteEventsFolder.Parent = ReplicatedStorage
+    end
 
 -- ==========================================
 -- PLANT SYSTEM EVENTS
@@ -124,4 +127,7 @@ local getLeaderboardFunction = Instance.new("RemoteFunction")
 getLeaderboardFunction.Name = "GetLeaderboard"
 getLeaderboardFunction.Parent = remoteEventsFolder
 
-print("✅ RemoteEvents: All communication events created successfully")
+    print("✅ RemoteEvents: All communication events created successfully")
+end
+
+return RemoteEventsSetup

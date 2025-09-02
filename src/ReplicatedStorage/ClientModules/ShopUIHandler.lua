@@ -662,6 +662,17 @@ function ShopUIHandler:SetupEventConnections()
             self:ShowNotification(message, messageType)
         end)
     end
+    
+    -- Listen for shop open requests from server (NPC interaction)
+    local openShopEvent = remoteEvents:FindFirstChild("OpenShop")
+    if openShopEvent then
+        openShopEvent.OnClientEvent:Connect(function()
+            self:OpenShop()
+        end)
+        print("🔗 ShopUIHandler: Connected to OpenShop remote event")
+    else
+        warn("❌ ShopUIHandler: OpenShop remote event not found")
+    end
 end
 
 function ShopUIHandler:SetupNPCInteraction()

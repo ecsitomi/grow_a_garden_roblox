@@ -68,6 +68,9 @@ function UIManager:Initialize()
     -- Set up remote event listeners
     self:SetupRemoteEvents()
     
+    -- Initialize UI handlers
+    self:InitializeUIHandlers()
+    
     print("✅ UIManager: Mobile UI system initialized successfully")
 end
 
@@ -458,6 +461,33 @@ end
 function UIManager:ShowNotification(message, notificationType)
     print("🔔 UIManager: Notification -", message, "(Type:", notificationType, ")")
     -- Could create a proper notification UI here
+end
+
+-- ==========================================
+-- UI HANDLERS INITIALIZATION
+-- ==========================================
+
+function UIManager:InitializeUIHandlers()
+    print("🎨 UIManager: Initializing UI handlers...")
+    
+    -- Initialize Shop UI Handler
+    local success, ShopUIHandler = pcall(function()
+        return require(ReplicatedStorage.ClientModules.ShopUIHandler)
+    end)
+    
+    if success and ShopUIHandler then
+        local initSuccess, result = pcall(function()
+            ShopUIHandler:Initialize()
+        end)
+        
+        if initSuccess then
+            print("✅ UIManager: ShopUIHandler initialized successfully")
+        else
+            warn("❌ UIManager: Failed to initialize ShopUIHandler:", result)
+        end
+    else
+        warn("❌ UIManager: Failed to load ShopUIHandler module:", ShopUIHandler)
+    end
 end
 
 -- ==========================================

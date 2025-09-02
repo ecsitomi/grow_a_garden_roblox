@@ -125,19 +125,25 @@ end
 print("📡 MainGameHandler: Setting up remote events...")
 
 -- Run RemoteEvents setup
-local remoteEventsSetup = ReplicatedStorage.RemoteEvents:FindFirstChild("RemoteEventsSetup")
-if remoteEventsSetup then
-    local success, result = pcall(function()
-        require(remoteEventsSetup)
-    end)
-    
-    if success then
-        print("✅ MainGameHandler: Remote events setup completed")
+local remoteEventsFolder = ReplicatedStorage:FindFirstChild("RemoteEvents")
+if remoteEventsFolder then
+    local remoteEventsSetup = remoteEventsFolder:FindFirstChild("RemoteEventsSetup")
+    if remoteEventsSetup then
+        local success, result = pcall(function()
+            local RemoteEventsModule = require(remoteEventsSetup)
+            RemoteEventsModule:Initialize()
+        end)
+        
+        if success then
+            print("✅ MainGameHandler: Remote events setup completed")
+        else
+            warn("❌ MainGameHandler: Remote events setup failed:", result)
+        end
     else
-        warn("❌ MainGameHandler: Remote events setup failed:", result)
+        warn("⚠️ MainGameHandler: RemoteEventsSetup script not found in RemoteEvents folder")
     end
 else
-    warn("⚠️ MainGameHandler: RemoteEventsSetup script not found")
+    warn("⚠️ MainGameHandler: RemoteEvents folder not found")
 end
 
 -- ==========================================
